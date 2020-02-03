@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="ie=edge" http-equiv="X-UA-Compatible" />
+    <script
+      crossorigin="anonymous"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+    ></script>
+    <title>疫情动态</title>
+  </head>
+  <body>
+    <div id="dingxiang-app">
+
+    </div>
+    <script>
+      jQuery.ajax({
+        url:
+          "https://www.tianqiapi.com/api?version=epidemic&appid=23035354&appsecret=8YvlPNrz",
+        config: {
+          headers: {
+            "Access-Control-Allow-Origin": "*"
+          }
+        },
+        type: "POST",
+        dataType: "json",
+        success: function(res) {
+          createTable(res);
+          window.data = res.data;
+        },
+        error: function() {
+          console.log("error");
+        }
+      });
+
+      function createTable(res) {
+        const { date, suspect, history, diagnosed } = res.data;
+        const infos = res.data.list;
+        const totalH2 = document.createElement('h2');
+        const container = document.createElement('div');
+        const total = diagnosed;
+        const newNumber = history[0].confirmedNum;
+        const oldNumber = history[1].confirmedNum;
+        const historyDate = history[0].date;
+        totalH2.classList.add('total_number');
+        const parentNode = document.getElementById('dingxiang-app');
+
+        titleNumber(date, parentNode);
+
+        const suspectH2 = document.createElement('h2');
+        suspectH2.classList.add('yisi_title');
+        suspectH2.innerText = `疑似: ${suspect}`;
+
+          infos.forEach((info) => {
+            let subInfo = info.split(" ");
+            const innerContainer = document.createElement('div');
+            innerContainer.classList.add('inner_table_container');
+            const provinceName = document.createElement('h3');
+            provinceName.classList.add('province_name');
+            const province = subInfo[0];
+            provinceName.innerText = province;
+            const numberSpan = document.createElement('h3');
+            numberSpan.classList.add('number');
+            const numberConfirmed = subInfo[2];
+            numberSpan.innerText = `确诊： ${numberConfirmed}`;
+            innerContainer.append(provinceName, numberSpan);
+            container.append(innerContainer);
+            if(province == "山东" || province == "河北") {
+              innerContainer.classList.add('shandong');
+              const provinceContainer = document.createElement('div');
+              provinceContainer.classList.add('province_container');
+              provinceContainer.append(provinceName, numberSpan);
+              innerContainer.append(provinceContainer);
+              const city = document.createElement('div');
+              city.classList.add('city');
+              const cityName = document.createElement('h3');
+              const cityConfirmed = document.createElement('h3');   
+              let cityNametxt = "";
+              let cityNumber = "";
+              if(province == "山东") {
+                cityNametxt = "济宁";
+                cityNumber = jiningNumber(res.data.area); 
+              }
+              else {
+                cityNametxt = "廊坊";
+                cityNumber = langfangNumber(res.data.area); 
+              }
+              cityName.innerText = cityNametxt;       
+              cityConfirmed.innerText = `确诊： ${cityNumber}`;
+              city.append(cityName, cityConfirmed);
+              innerContainer.append(city);
+              innerContainer.onclick = () => {
+                innerContainer.classList.toggle('show');
+                console.log(innerContainer);
+              }       
+            }
+          });
+
+          totalH2.innerText = `全国确诊: ${total}`;
+
+          const increase = newNumber - oldNumber;
+          increaseTo(historyDate, increase, parentNode);
+          const totalDiv = document.createElement('div');
+          totalDiv.classList.add('total_div');
+          totalDiv.append(totalH2, suspectH2);
+          parentNode.append(totalDiv, container);
+      }
+
+      function jiningNumber(area) {
+          const result = area.filter((item) => item.provinceName == "山东");
+          const { cities } = result[0];
+          const jining = cities.filter((city) => city.cityName == "济宁");
+          const finalNumber = jining[0].confirmedCount; 
+          return finalNumber;
+      }
+
+      function langfangNumber(area) {
+          const result = area.filter((item) => item.provinceName == "河北");
+          const { cities } = result[0];
+          const langfang = cities.filter((city) => city.cityName == "廊坊");
+          const finalNumber = langfang[0].confirmedCount; 
+          return finalNumber;
+      }
+
+      function titleNumber(date, parentNode) {
+        const timeH3 = document.createElement('h3');
+        timeH3.classList.add('time_title');
+        timeH3.innerText = `更新时间: ${date}`;
+        parentNode.append(timeH3);
+      }
+
+      function increaseTo(historyDate, increase, parentNode) {
+        const increaseH3 = document.createElement('h3');
+        increaseH3.classList.add('increase_number');
+        const numberSpan = document.createElement('span');
+        const titleSpan = document.createElement('span');
+        numberSpan.classList.add('number_span');
+        titleSpan.innerText = `${historyDate} 增加确诊人数: `;
+        numberSpan.innerText = increase;
+        increaseH3.append(titleSpan, numberSpan);
+        parentNode.append(increaseH3);
+      }
+
+    </script>
+
+    <style>
+      #dingxiang-app {
+        padding: 0 10%;
+      }
+
+      .total_div {
+        display: flex;
+        justify-content: center;
+      }
+      .total_div h2 {
+        font-size: 1.2rem;
+        padding: 0 2rem;
+      }
+
+      .total_number {
+        text-align: center;
+      }
+
+      .inner_table_container {
+        display: grid;
+        grid-template-columns: 1fr auto;
+      }
+
+      .province_container {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        width: 100%;
+      }
+
+      .shandong.show .province_container {
+        margin-bottom: 2rem;
+      }
+
+      .number {
+        color: red;
+      }
+      
+      .time_title {
+        text-align: center;
+      }
+
+      .increase_number {
+        text-align: center;
+      }
+
+      .number_span {
+        color: red;
+      }
+
+      .shandong {
+        position: relative;
+      }
+
+      .shandong .province_name {
+        cursor: pointer;
+      }
+
+      .shandong .province_name::after {
+        content: "🔽";
+        display: inline-block;
+        height: 1rem;
+        width: 1rem;
+        font-size: 10px;
+        margin-left: 0.5rem;
+      }
+
+      .city {
+        position: absolute;
+        width: 100%;
+        top: 2rem;
+        display: none;
+      }
+
+      .shandong.show .city {
+        position: absolute;
+        width: 100%;
+        top: 3rem;
+        display: grid;
+        grid-template-columns: 1fr auto;
+      }
+
+      .city h3 {
+        display: inline-block;
+        color: purple;
+      }
+
+    </style>
+  </body>
+</html>
